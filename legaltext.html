@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Falling Word (Con Sonido sfx-plastic53 / 68)</title>
+  <style>
+    body {
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box;
+      display: flex; 
+      flex-direction: column;
+      align-items: center; 
+      justify-content: flex-start;
+      font-family: sans-serif; 
+      background: #eaeaea;
+      height: 100vh;
+    }
+    h1 {
+      margin: 10px 0;
+      font-size: 24px;
+    }
+    #infoBar {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    #gameCanvas {
+      background: #fff;
+      border: 2px solid #333;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Mini Falling Word (Sonido: sfx-plastic53 / 68)</h1>
+<div id="infoBar">
+  <span>Tecleado: <span id="typedText"></span></span>  
+  &nbsp; | &nbsp; 
+  <span>Presiona Enter para verificar</span>
+</div>
+
+<canvas id="gameCanvas" width="600" height="400"></canvas>
+
+<!-- Estos nombres coinciden con los que tienes en tu carpeta sounds/ -->
+<audio id="soundOk"   src="sounds/sfx-plastic53.mp3"></audio>
+<audio id="soundFail" src="sounds/sfx-plastic68.mp3"></audio>
+
+<script>
+/***********************************************************
+ * 1. Variables
+ ***********************************************************/
+const canvas    = document.getElementById("gameCanvas");
+const ctx       = canvas.getContext("2d");
+const typedEl   = document.getElementById("typedText");
+const soundOk   = document.getElementById("soundOk");     
+const soundFail = document.getElementById("soundFail");   
+
+// Palabra que cae
+let fallingWord = {
+  text: "Hola",
+  x:    200,
+  y:    -30,
+  speed: 1.2
+};
+
+// Texto ingresado
+let typedInput  = "";
+
+// Animación
+let animationId = null;
+
+/***********************************************************
+ * 2. Lógica de dibujo
+ ***********************************************************/
+// Dibuja la palabra con parte en verde
+function drawFallingWord() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const prefixLen = getCommonPrefixLength(typedInput, fallingWord.text);
+
+  const prefix = fallingWord.text.slice(0, prefixLen);
+  const suffix = fallingWord.text.slice(prefixLen);
+
+  ctx.font = "28px Arial";
+  ctx.textBaseline = "top";
+
+  // Prefijo en verde
+  ctx.fillStyle = "green";
+  ctx.fillText(prefix, fallingWord.x, fallingWord.y);
+
+  // Resto en gris
+  const prefixWidth = ctx.measureText(prefix).width;
+  ctx.fillStyle = "#333";
+  ctx.fillText(suffix, fallingWord.x + prefixWidth, fallingWord.y);
+}
+
+function getCommonPrefixLength(str1, str2) {
+  const minLen = Math.min(str1.length, str2.length);
+  let i = 0;
+  while (i < minLen && str1[i].toLowerCase() === str2[i].toLowerCase()) {
+    i++;
+  }
+  return i;
+}
+
+// Bucle principal
+function update() {
+  animationId = requestAnimationFrame(update);
+
+  // Bajar la palabra
+  fallingWord.y += fallingWord.speed;
+
+  // Dibujarla
+  drawFallingWord();
+
+  // Si pasa el fondo => Falla
+  if (fallingWord.y > canvas.height) {
+    if (soundFail) {
+      soundFail.currentTime = 0;
+      soundFail.play();
+    }
+    resetWord();
+  }
+}
+
+// Reiniciar la palabra arriba
+function resetWord() {
+  fallingWord.y = -30;
+  fallingWord.x = 200;
+  typedInput    = "";
+  typedEl.textContent = "";
+}
+
+/***********************************************************
+ * 3. Teclado
+ ***********************************************************/
+window.addEventListener("keydown", (e) => {
+  // Si es letra/número
+  if (/^[a-zA-Z0-9ñÑ]$/.test(e.key)) {
+    typedInput += e.key;
+    typedEl.textContent = typedInput;
+  }
+  // Enter => verificar
+  else if (e.key === "Enter") {
+    checkWord();
+  }
+  // Backspace => borrar último char
+  else if (e.key === "Backspace") {
+    typedInput = typedInput.slice(0, -1);
+    typedEl.textContent = typedInput;
+    e.preventDefault();
+  }
+});
+
+function checkWord() {
+  // Si typedInput == la palabra => acierto
+  if (typedInput.toLowerCase() === fallingWord.text.toLowerCase()) {
+    if (soundOk) {
+      soundOk.currentTime = 0;
+      soundOk.play();
+    }
+    resetWord();
+  } else {
+    // Falla
+    if (soundFail) {
+      soundFail.currentTime = 0;
+      soundFail.play();
+    }
+    resetWord();
+  }
+}
+
+/***********************************************************
+ * 4. Iniciar animación
+ ***********************************************************/
+animationId = requestAnimationFrame(update);
+</script>
+</body>
+</html>
